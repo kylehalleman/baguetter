@@ -1,0 +1,19 @@
+{
+  "name": "create-component",
+  "version": "1.0.0",
+  "description": "A little script to create React components",
+  "main": "index.js",
+  "scripts": {
+    "create": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kylehalleman/create-component.git"
+  },
+  "author": "Kyle Halleman",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kylehalleman/create-component/issues"
+  },
+  "homepage": "https://github.com/kylehalleman/create-component#readme"
+}
