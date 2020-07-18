@@ -1,19 +1,27 @@
 {
-  "name": "create-component",
-  "version": "1.0.0",
-  "description": "A little script to create React components",
+  "name": "baguetter",
+  "version": "2.0.0-beta1",
+  "description": "A little script to create new modules from templates.",
   "main": "index.js",
+  "bin": {
+    "baguette": "index.js"
+  },
   "scripts": {
-    "create": "node index.js"
+    "create": "node index.js",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kylehalleman/create-component.git"
+    "url": "git+https://github.com/kylehalleman/baguetter.git"
   },
   "author": "Kyle Halleman",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/kylehalleman/create-component/issues"
+    "url": "https://github.com/kylehalleman/baguetter/issues"
   },
-  "homepage": "https://github.com/kylehalleman/create-component#readme"
+  "homepage": "https://github.com/kylehalleman/baguetter#readme",
+  "devDependencies": {
+    "jest": "^26.1.0"
+  }
 }
