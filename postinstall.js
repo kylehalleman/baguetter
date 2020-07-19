@@ -3,7 +3,7 @@ const path = require("path");
 const font = require("./font");
 const fs = require("fs").promises;
 
-const packagePath = path.resolve(process.cwd(), "package.json");
+const packagePath = path.resolve(process.cwd(), "../../package.json");
 
 console.log(
   font.task(
