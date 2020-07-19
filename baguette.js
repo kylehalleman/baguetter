@@ -1,17 +1,15 @@
 const path = require("path");
 const fs = require("fs").promises;
+const font = require("./font");
 const TEMPLATE_KEYWORD_REGEX = "baguette";
+const DEFAULT_DEST = "src";
+const DEFAULT_NAME = "IDidntSupplyAName";
 
-const reset = "\x1b[0m";
-
-const font = {
-  error: (str) => `🚨 \x1b[31m${str}${reset}`,
-  success: (str) => `\x1b[32m${str}${reset}`,
-  task: (str) => `\x1b[34m${str}${reset}`,
-  bold: (str) => "\033[1m" + str + "\033[0m",
-};
-
-function createComponent({ name, template, dest = "src" }) {
+function createComponent({
+  name = DEFAULT_NAME,
+  template,
+  dest = DEFAULT_DEST,
+}) {
   console.log(
     font.task(`👨‍🍳 Baking ${font.bold(name)}`),
     font.task(`from ${template} recipe in ${dest}\n`)
@@ -20,20 +18,30 @@ function createComponent({ name, template, dest = "src" }) {
   const destDir = path.resolve(process.cwd(), dest, name);
   const replacer = replaceComponentReferences(TEMPLATE_KEYWORD_REGEX, name);
 
-  return Promise.all([
-    fs.mkdir(destDir, { recursive: true }),
-    fs.readdir(templateDir),
-  ])
-    .then(([, files]) => {
-      return Promise.all(
+  return fs
+    .readdir(templateDir)
+    .catch((e) => {
+      if (e.message.includes("no such file or directory")) {
+        throw new Error(
+          "No baguettes template folder found. You should create one."
+        );
+      } else {
+        throw e;
+      }
+    })
+    .then((files) =>
+      Promise.all([files, fs.mkdir(destDir, { recursive: true })])
+    )
+    .then(([files]) =>
+      Promise.all(
         files.map((file) =>
           fs.copyFile(
             path.resolve(templateDir, file),
             path.resolve(destDir, replacer(file))
           )
         )
-      );
-    })
+      )
+    )
     .then(() => fs.readdir(destDir))
     .then((files) =>
       Promise.all(files.map(replaceFileContents(replacer, destDir)))
@@ -70,15 +78,15 @@ function getConfig() {
     .then(JSON.parse)
     .catch((e) => {
       if (e instanceof SyntaxError) {
-        console.log(font.error("Malformed JSON in config.json file"));
+        throw new Error("Malformed JSON in config.json file");
       } else if (e.code === "ENOENT") {
         console.log(
-          font.error("No config.json file found in baguettes directory")
+          font.error(
+            "No config.json file found in baguettes directory, using default config."
+          )
         );
-      } else {
-        console.log(font.error(e));
+        return Promise.resolve({});
       }
-      process.exit(0);
     });
 }
 
@@ -87,17 +95,16 @@ module.exports = function baguette({ name, template, dest }) {
     // don't need config if there's a dest chosen
     return createComponent({ name, template, dest });
   } else {
-    return getConfig().then((config) => {
-      if (config[template]) {
-        return createComponent({ name, template, dest: config[template] });
-      } else {
-        console.warn(
-          font.error(
-            `No dest directory found in config for template ${template}`
-          )
-        );
-        process.exit(0);
-      }
-    });
+    return getConfig()
+      .then((config) => {
+        return createComponent({
+          name,
+          template,
+          dest: config[template] || DEFAULT_DEST,
+        });
+      })
+      .catch((e) => {
+        console.log(font.error(e.message));
+      });
   }
 };
