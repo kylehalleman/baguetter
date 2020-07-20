@@ -4,6 +4,8 @@ A simple script to generate new components and modules from a template you creat
 
 ## Install
 
+**Note:** Requires Node 12.10 or great (just really wanted an easy recursive `rmdir`).
+
 `npm install --save-dev baguetter`
 
 ## Use

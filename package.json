@@ -11,6 +11,9 @@
     "test": "jest",
     "test:watch": "jest --watch"
   },
+  "engines": {
+    "node": ">=12.10"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kylehalleman/baguetter.git"
