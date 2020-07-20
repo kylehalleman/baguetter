@@ -93,7 +93,9 @@ function getConfig() {
 module.exports = function baguette({ name, template, dest }) {
   if (dest) {
     // don't need config if there's a dest chosen
-    return createComponent({ name, template, dest });
+    return createComponent({ name, template, dest }).catch((e) => {
+      console.log(font.error(e.message));
+    });
   } else {
     return getConfig()
       .then((config) => {
