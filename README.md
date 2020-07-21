@@ -20,7 +20,7 @@ If you did allow `postinstall` to run, this script will already be there for you
 
 Run `npm run baguette -- [template] [name] [dest]` to generate new modules from templates you create!
 
-…but you'll need to create those templates first 👇
+**…but you'll need to create those templates first** 👇
 
 ## Creating templates (a.k.a baguettes)
 
