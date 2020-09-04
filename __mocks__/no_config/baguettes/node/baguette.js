@@ -1,3 +1,3 @@
 module.exports = function baguette() {
-  return true;
+	return true;
 };
