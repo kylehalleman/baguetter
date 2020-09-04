@@ -1,4 +1,5 @@
 {
-  "react": "src/components",
-  "node": "src/server"
+	"react": "src/components",
+	"node": "src/server",
+	"duck": "src/ducks"
 }
