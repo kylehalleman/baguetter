@@ -61,14 +61,28 @@ export default Baguette;
 
 To choose where your files end up, you can pass in `--dest=path/to/output` on the command line, or you can place a `config.json` file in your `baguettes` folder. This is a simple object with the keys being the template names (e.g. `react` or `node` in our earlier example), and the values being the path to the output. See this example:
 
-```
+```json
 {
   "react": "src/components",
   "node": "src/server"
 }
 ```
 
-Even if you have a config set, you can always override it by passing in the `dest` argument on the command line.
+### `includeFolder`
+
+Sometimes you don't want to include the enclosing folder when creating a component or module. You can set the `includeFolder` option (defaults to `true`) either via the `config.json` (see example below) or by adding the flag `--includeFolder=true` on the command line.
+
+```json
+{
+  "react": {
+    "dest": "src/components",
+    "includeFolder": false
+  },
+  "node": "src/server"
+}
+```
+
+Even if you have a config set, you can always override it by passing in the flags on the command line.
 
 ## Running
 

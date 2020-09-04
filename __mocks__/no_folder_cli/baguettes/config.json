@@ -1,0 +1,4 @@
+{
+	"react": { "dest": "src/components", "includeFolder": true },
+	"node": { "dest": "src/server", "includeFolder": true }
+}

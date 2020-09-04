@@ -69,9 +69,7 @@ describe("baguette", () => {
 	});
 
 	describe("Creating a new component with a config, but passing in dest", () => {
-		test("Does not attempt to lookup config.json, creates component in specified dest folder", () => {
-			const parse = jest.spyOn(JSON, "parse");
-
+		test("Creates component in specified dest folder", () => {
 			jest.spyOn(process, "cwd").mockReturnValue("__mocks__/supplied_dest");
 
 			const outputFile = path.resolve(
@@ -90,7 +88,6 @@ describe("baguette", () => {
 					.then((contents) => {
 						expect(contents).toContain("Hello");
 						expect(contents).not.toContain("Baguette");
-						expect(parse).not.toHaveBeenCalled();
 					})
 					.catch((e) => {
 						throw new Error("Test failed, templates not created");
@@ -149,6 +146,65 @@ describe("baguette", () => {
 						"No baguettes template folder found. You should create one."
 					)
 				);
+			});
+		});
+	});
+
+	describe("Creating a new component with config object and not outputting folder and everything works", () => {
+		test("Looks up the config from user’s config.json file", () => {
+			const parse = jest.spyOn(JSON, "parse");
+
+			jest.spyOn(process, "cwd").mockReturnValue("__mocks__/no_folder");
+
+			const outputFile = path.resolve(
+				process.cwd(),
+				"src/components/Hello.jsx"
+			);
+
+			return baguette({
+				name: "Hello",
+				template: "react",
+			}).then(() => {
+				return fs
+					.access(outputFile)
+					.then(() => fs.readFile(outputFile, "utf-8"))
+					.then((contents) => {
+						expect(contents).toContain("Hello");
+						expect(contents).not.toContain("Baguette");
+						expect(parse).toHaveBeenCalled();
+					})
+					.catch((e) => {
+						throw new Error("Test failed, templates not created");
+					});
+			});
+		});
+	});
+
+	describe("Creating a new component with config object and CLI args and not outputting folder and everything works", () => {
+		test("Looks up the config from user’s config.json file, but uses CLI args instead", () => {
+			const parse = jest.spyOn(JSON, "parse");
+
+			jest.spyOn(process, "cwd").mockReturnValue("__mocks__/no_folder_cli");
+
+			const outputFile = path.resolve(process.cwd(), "src/different/Hello.jsx");
+
+			return baguette({
+				name: "Hello",
+				template: "react",
+				dest: "src/different",
+				includeFolder: false,
+			}).then(() => {
+				return fs
+					.access(outputFile)
+					.then(() => fs.readFile(outputFile, "utf-8"))
+					.then((contents) => {
+						expect(contents).toContain("Hello");
+						expect(contents).not.toContain("Baguette");
+						expect(parse).toHaveBeenCalled();
+					})
+					.catch((e) => {
+						throw new Error("Test failed, templates not created");
+					});
 			});
 		});
 	});

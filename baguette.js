@@ -5,17 +5,20 @@ const TEMPLATE_KEYWORD_REGEX = "baguette";
 const DEFAULT_DEST = "src";
 const DEFAULT_NAME = "IDidntSupplyAName";
 
-function createComponent({
-	name = DEFAULT_NAME,
-	template,
-	dest = DEFAULT_DEST,
-}) {
+const DEFAULT_CONFIG = {
+	dest: DEFAULT_DEST,
+	includeFolder: true,
+};
+
+function createComponent({ name = DEFAULT_NAME, template, config }) {
+	const { dest, includeFolder } = config;
+
 	console.log(
 		font.task(`👨‍🍳 Baking ${font.bold(name)}`),
 		font.task(`from ${template} recipe in ${dest}\n`)
 	);
 	const templateDir = path.resolve(process.cwd(), "baguettes", template);
-	const destDir = path.resolve(process.cwd(), dest, name);
+	const destDir = path.resolve(process.cwd(), dest, includeFolder ? name : "");
 	const replacer = replaceComponentReferences(TEMPLATE_KEYWORD_REGEX, name);
 
 	return fs
@@ -90,23 +93,20 @@ function getConfig() {
 		});
 }
 
-module.exports = function baguette({ name, template, dest }) {
-	if (dest) {
-		// don't need config if there's a dest chosen
-		return createComponent({ name, template, dest }).catch((e) => {
+module.exports = function baguette({ name, template, ...options }) {
+	return getConfig()
+		.then((config) => {
+			const mergedConfig =
+				typeof config[template] === "string"
+					? { ...DEFAULT_CONFIG, dest: config[template], ...options }
+					: { ...DEFAULT_CONFIG, ...config[template], ...options };
+			return createComponent({
+				name,
+				template,
+				config: mergedConfig,
+			});
+		})
+		.catch((e) => {
 			console.log(font.error(e.message));
 		});
-	} else {
-		return getConfig()
-			.then((config) => {
-				return createComponent({
-					name,
-					template,
-					dest: config[template] || DEFAULT_DEST,
-				});
-			})
-			.catch((e) => {
-				console.log(font.error(e.message));
-			});
-	}
 };
