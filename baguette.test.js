@@ -5,207 +5,185 @@ const fs = require("fs").promises;
 
 const font = require("./font");
 
-describe("baguette", () => {
-	let log;
+function setup(src) {
+	const cwdSpy = jest.spyOn(process, "cwd").mockReturnValue(src);
+	const logSpy = jest.spyOn(console, "log");
 
-	beforeEach(() => {
-		// reduce all the extra log statements
-		log = jest.spyOn(console, "log").mockImplementation(() => {});
-	});
+	return {
+		logSpy,
+		cleanup: () => {
+			cwdSpy.mockRestore();
+			const srcPath = path.resolve(process.cwd(), src, "src");
 
-	afterEach(() => {
-		jest.restoreAllMocks();
-	});
+			return fs
+				.access(srcPath)
+				.then(() => fs.rmdir(srcPath, { recursive: true }))
+				.catch(() => {});
+		},
+	};
+}
 
-	afterAll(() => {
-		const mocksFolder = path.resolve(process.cwd(), "__mocks__");
+test("Creating a new component with a config", () => {
+	const { cleanup } = setup("__mocks__/normal");
 
-		return fs.readdir(mocksFolder).then((folders) =>
-			Promise.all(
-				folders.map((folder) => {
-					const srcPath = path.resolve(mocksFolder, folder, "src");
+	const outputFile = path.resolve(
+		process.cwd(),
+		"src/components/Hello/Hello.jsx"
+	);
 
-					return fs
-						.access(srcPath)
-						.then(() => fs.rmdir(srcPath, { recursive: true }))
-						.catch(() => {});
+	return baguette({
+		name: "Hello",
+		template: "react",
+	})
+		.then(() => {
+			return fs
+				.access(outputFile)
+				.then(() => fs.readFile(outputFile, "utf-8"))
+				.then((contents) => {
+					expect(contents).toContain("Hello");
+					expect(contents).not.toContain("Baguette");
 				})
-			)
+				.catch((e) => {
+					throw new Error("Test failed, templates not created");
+				});
+		})
+		.then(cleanup);
+});
+
+test("Creating a new component with a config, but passing in dest", () => {
+	const { cleanup } = setup("__mocks__/supplied_dest");
+
+	const outputFile = path.resolve(process.cwd(), "src/react/Hello/Hello.jsx");
+
+	return baguette({
+		name: "Hello",
+		template: "react",
+		dest: "src/react",
+	}).then(() => {
+		return (
+			fs
+				.access(outputFile)
+				.then(() => fs.readFile(outputFile, "utf-8"))
+				.then((contents) => {
+					expect(contents).toContain("Hello");
+					expect(contents).not.toContain("Baguette");
+				})
+				// checks that the config.json was not used
+				.then(() =>
+					fs
+						.access(
+							path.resolve(process.cwd(), "src/components/Hello/Hello.jsx")
+						)
+						.catch((err) => {
+							expect(err.code).toBe("ENOENT");
+						})
+				)
+				.catch((e) => {
+					throw new Error("Test failed, templates not created");
+				})
+				.then(cleanup)
 		);
 	});
+});
 
-	xdescribe("Creating a new component but not supplying a name", () => {
-		test("A default name is giving for the templates");
+test("Creating a new component, without a config creates the component in the default dest (src)", () => {
+	const { cleanup } = setup("__mocks__/no_config");
+
+	const outputFile = path.resolve(process.cwd(), "src/Hello/Hello.jsx");
+
+	return baguette({ name: "Hello", template: "react" }).then(() => {
+		return fs
+			.access(outputFile)
+			.then(() => fs.readFile(outputFile, "utf-8"))
+			.then((contents) => {
+				// only can access if src/react/Hello.jsx exists
+				expect(contents).toContain("Hello");
+				expect(contents).not.toContain("Baguette");
+			})
+			.catch((e) => {
+				throw new Error("Test failed, templates not created");
+			})
+			.then(cleanup);
 	});
+});
 
-	describe("Creating a new component with a config and everything works", () => {
-		test("Looks up the config from user’s config.json file", () => {
-			const parse = jest.spyOn(JSON, "parse");
+test("Creating a new component, with a malformed config, script exits with a log to the console", () => {
+	const { logSpy } = setup("__mocks__/malformed_config");
 
-			jest.spyOn(process, "cwd").mockReturnValue("__mocks__/normal");
+	return baguette({}).then(() => {
+		expect(logSpy).toHaveBeenCalledWith(
+			font.error("Malformed JSON in config.json file")
+		);
+	});
+});
 
-			const outputFile = path.resolve(
-				process.cwd(),
-				"src/components/Hello/Hello.jsx"
-			);
+test("Creating a new component, without any templates in baguettes folder, script exits with a log to the console", () => {
+	const { logSpy } = setup("__mocks__/");
 
-			return baguette({
-				name: "Hello",
-				template: "react",
-			}).then(() => {
-				return fs
-					.access(outputFile)
-					.then(() => fs.readFile(outputFile, "utf-8"))
-					.then((contents) => {
-						expect(contents).toContain("Hello");
-						expect(contents).not.toContain("Baguette");
-						expect(parse).toHaveBeenCalled();
+	return baguette({ name: "Hello", template: "react" }).then(() => {
+		expect(logSpy).toHaveBeenCalledWith(
+			font.error("No baguettes template folder found. You should create one.")
+		);
+	});
+});
+
+test("Creating a new component with config object and not outputting folder and everything works", () => {
+	const { cleanup } = setup("__mocks__/no_folder");
+
+	const outputFile = path.resolve(process.cwd(), "src/components/Hello.jsx");
+
+	return baguette({
+		name: "Hello",
+		template: "react",
+	}).then(() => {
+		return fs
+			.access(outputFile)
+			.then(() => fs.readFile(outputFile, "utf-8"))
+			.then((contents) => {
+				expect(contents).toContain("Hello");
+				expect(contents).not.toContain("Baguette");
+			})
+			.then(() =>
+				fs
+					.access(path.resolve(process.cwd(), "src/components/Hello/Hello.jsx"))
+					.catch((err) => {
+						expect(err.code).toBe("ENOENT");
 					})
-					.catch((e) => {
-						throw new Error("Test failed, templates not created");
-					});
-			});
-		});
+			)
+			.catch((e) => {
+				throw new Error("Test failed, templates not created");
+			})
+			.then(cleanup);
 	});
+});
 
-	describe("Creating a new component with a config, but passing in dest", () => {
-		test("Creates component in specified dest folder", () => {
-			jest.spyOn(process, "cwd").mockReturnValue("__mocks__/supplied_dest");
+test.only("Creating a new component with config object and CLI args and not outputting folder and everything works", () => {
+	const { cleanup } = setup("__mocks__/no_folder_cli");
+	const outputFile = path.resolve(process.cwd(), "src/different/Hello.jsx");
 
-			const outputFile = path.resolve(
-				process.cwd(),
-				"src/react/Hello/Hello.jsx"
-			);
-
-			return baguette({
-				name: "Hello",
-				template: "react",
-				dest: "src/react",
-			}).then(() => {
-				return fs
-					.access(outputFile)
-					.then(() => fs.readFile(outputFile, "utf-8"))
-					.then((contents) => {
-						expect(contents).toContain("Hello");
-						expect(contents).not.toContain("Baguette");
+	return baguette({
+		name: "Hello",
+		template: "react",
+		dest: "src/different",
+		includeFolder: false,
+	}).then(() => {
+		return fs
+			.access(outputFile)
+			.then(() => fs.readFile(outputFile, "utf-8"))
+			.then((contents) => {
+				expect(contents).toContain("Hello");
+				expect(contents).not.toContain("Baguette");
+			})
+			.then(() =>
+				fs
+					.access(path.resolve(process.cwd(), "src/different/Hello/Hello.jsx"))
+					.catch((err) => {
+						expect(err.code).toBe("ENOENT");
 					})
-					.catch((e) => {
-						throw new Error("Test failed, templates not created");
-					});
-			});
-		});
-	});
-
-	describe("Creating a new component, without a config", () => {
-		test("Creates the component in the default dest (src)", () => {
-			jest.spyOn(process, "cwd").mockReturnValue("__mocks__/no_config");
-
-			const outputFile = path.resolve(process.cwd(), "src/Hello/Hello.jsx");
-
-			return baguette({ name: "Hello", template: "react" }).then(() => {
-				return fs
-					.access(outputFile)
-					.then(() => fs.readFile(outputFile, "utf-8"))
-					.then((contents) => {
-						// only can access if src/react/Hello.jsx exists
-						expect(contents).toContain("Hello");
-						expect(contents).not.toContain("Baguette");
-						expect(log).toHaveBeenNthCalledWith(
-							1,
-							font.error(
-								"No config.json file found in baguettes directory, using default config."
-							)
-						);
-					})
-					.catch((e) => {
-						throw new Error("Test failed, templates not created");
-					});
-			});
-		});
-	});
-
-	describe("Creating a new component, with a malformed config", () => {
-		test("The script exits with a log to the console", () => {
-			jest.spyOn(process, "cwd").mockReturnValue("__mocks__/malformed_config");
-
-			return baguette({}).then(() => {
-				expect(log).toHaveBeenCalledWith(
-					font.error("Malformed JSON in config.json file")
-				);
-			});
-		});
-	});
-
-	describe("Creating a new component, without any templates in baguettes folder", () => {
-		test("The script exits with a log to the console", () => {
-			jest.spyOn(process, "cwd").mockReturnValue("__mocks__");
-
-			return baguette({ name: "Hello", template: "react" }).then(() => {
-				expect(log).toHaveBeenCalledWith(
-					font.error(
-						"No baguettes template folder found. You should create one."
-					)
-				);
-			});
-		});
-	});
-
-	describe("Creating a new component with config object and not outputting folder and everything works", () => {
-		test("Looks up the config from user’s config.json file", () => {
-			const parse = jest.spyOn(JSON, "parse");
-
-			jest.spyOn(process, "cwd").mockReturnValue("__mocks__/no_folder");
-
-			const outputFile = path.resolve(
-				process.cwd(),
-				"src/components/Hello.jsx"
-			);
-
-			return baguette({
-				name: "Hello",
-				template: "react",
-			}).then(() => {
-				return fs
-					.access(outputFile)
-					.then(() => fs.readFile(outputFile, "utf-8"))
-					.then((contents) => {
-						expect(contents).toContain("Hello");
-						expect(contents).not.toContain("Baguette");
-						expect(parse).toHaveBeenCalled();
-					})
-					.catch((e) => {
-						throw new Error("Test failed, templates not created");
-					});
-			});
-		});
-	});
-
-	describe("Creating a new component with config object and CLI args and not outputting folder and everything works", () => {
-		test("Looks up the config from user’s config.json file, but uses CLI args instead", () => {
-			const parse = jest.spyOn(JSON, "parse");
-
-			jest.spyOn(process, "cwd").mockReturnValue("__mocks__/no_folder_cli");
-
-			const outputFile = path.resolve(process.cwd(), "src/different/Hello.jsx");
-
-			return baguette({
-				name: "Hello",
-				template: "react",
-				dest: "src/different",
-				includeFolder: false,
-			}).then(() => {
-				return fs
-					.access(outputFile)
-					.then(() => fs.readFile(outputFile, "utf-8"))
-					.then((contents) => {
-						expect(contents).toContain("Hello");
-						expect(contents).not.toContain("Baguette");
-						expect(parse).toHaveBeenCalled();
-					})
-					.catch((e) => {
-						throw new Error("Test failed, templates not created");
-					});
-			});
-		});
+			)
+			.catch((e) => {
+				throw new Error("Test failed, templates not created");
+			})
+			.then(cleanup);
 	});
 });
