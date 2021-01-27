@@ -157,7 +157,7 @@ test("Creating a new component with config object and not outputting folder and 
 	});
 });
 
-test.only("Creating a new component with config object and CLI args and not outputting folder and everything works", () => {
+test("Creating a new component with config object and CLI args and not outputting folder and everything works", () => {
 	const { cleanup } = setup("__mocks__/no_folder_cli");
 	const outputFile = path.resolve(process.cwd(), "src/different/Hello.jsx");
 
