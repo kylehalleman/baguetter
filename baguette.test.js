@@ -23,7 +23,7 @@ function setup(src) {
 	};
 }
 
-test("Creating a new component with a config", () => {
+test("I can use a JSON config to create new modules.", () => {
 	const { cleanup } = setup("__mocks__/normal");
 
 	const outputFile = path.resolve(
@@ -50,7 +50,7 @@ test("Creating a new component with a config", () => {
 		.then(cleanup);
 });
 
-test("Creating a new component with a config, but passing in dest", () => {
+test("I can pass in a `dest` on the command line even if I have a config.", () => {
 	const { cleanup } = setup("__mocks__/supplied_dest");
 
 	const outputFile = path.resolve(process.cwd(), "src/react/Hello/Hello.jsx");
@@ -86,7 +86,7 @@ test("Creating a new component with a config, but passing in dest", () => {
 	});
 });
 
-test("Creating a new component, without a config creates the component in the default dest (src)", () => {
+test("I can create modules without a config, relying on the default `src` output.", () => {
 	const { cleanup } = setup("__mocks__/no_config");
 
 	const outputFile = path.resolve(process.cwd(), "src/Hello/Hello.jsx");
@@ -107,7 +107,7 @@ test("Creating a new component, without a config creates the component in the de
 	});
 });
 
-test("Creating a new component, with a malformed config, script exits with a log to the console", () => {
+test("If I have an invalid config, the script lets me know and doesn’t run.", () => {
 	const { logSpy } = setup("__mocks__/malformed_config");
 
 	return baguette({}).then(() => {
@@ -117,7 +117,7 @@ test("Creating a new component, with a malformed config, script exits with a log
 	});
 });
 
-test("Creating a new component, without any templates in baguettes folder, script exits with a log to the console", () => {
+test("If I don’t have any templates, the script lets me know and doesn’t run.", () => {
 	const { logSpy } = setup("__mocks__/");
 
 	return baguette({ name: "Hello", template: "react" }).then(() => {
@@ -127,7 +127,7 @@ test("Creating a new component, without any templates in baguettes folder, scrip
 	});
 });
 
-test("Creating a new component with config object and not outputting folder and everything works", () => {
+test("I can choose to omit the module folder when generating a new module.", () => {
 	const { cleanup } = setup("__mocks__/no_folder");
 
 	const outputFile = path.resolve(process.cwd(), "src/components/Hello.jsx");
@@ -157,7 +157,7 @@ test("Creating a new component with config object and not outputting folder and 
 	});
 });
 
-test("Creating a new component with config object and CLI args and not outputting folder and everything works", () => {
+test("I can override my JSON config with CLI arguments.", () => {
 	const { cleanup } = setup("__mocks__/no_folder_cli");
 	const outputFile = path.resolve(process.cwd(), "src/different/Hello.jsx");
 
