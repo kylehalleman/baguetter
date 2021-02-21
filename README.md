@@ -10,13 +10,11 @@ A simple script to generate new components and modules from a template you creat
 
 ## Use
 
-If you didn't allow `postinstall` scripts to run, add the following to your `scripts` in `package.json`:
+Add the following to your `scripts` in `package.json`:
 
 ```
 "baguette": "baguette"
 ```
-
-If you did allow `postinstall` to run, this script will already be there for you.
 
 Run `npm run baguette -- [template] [name] [dest]` to generate new modules from templates you create!
 

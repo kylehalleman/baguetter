@@ -1,13 +1,12 @@
 {
 	"name": "baguetter",
-	"version": "2.1.2",
+	"version": "2.2.0",
 	"description": "A little script to create new modules from templates.",
 	"main": "index.js",
 	"bin": {
 		"baguette": "index.js"
 	},
 	"scripts": {
-		"postinstall": "node ./postinstall.js",
 		"test": "jest",
 		"test:watch": "jest --watch"
 	},
