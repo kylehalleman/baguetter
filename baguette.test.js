@@ -187,3 +187,30 @@ test("I can override my JSON config with CLI arguments.", () => {
 			.then(cleanup);
 	});
 });
+
+test("I can have template folders with nested folders", () => {
+	const { cleanup } = setup("__mocks__/nested");
+
+	const outputFile = path.resolve(
+		process.cwd(),
+		"src/server/hello/nested/hello.js"
+	);
+
+	return baguette({
+		name: "hello",
+		template: "node",
+	})
+		.then(() => {
+			return fs
+				.access(outputFile)
+				.then(() => fs.readFile(outputFile, "utf-8"))
+				.then((contents) => {
+					expect(contents).toContain("hello");
+					expect(contents).not.toContain("baguette");
+				})
+				.catch((e) => {
+					throw new Error("Test failed, templates not created");
+				});
+		})
+		.then(cleanup);
+});

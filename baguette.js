@@ -1,4 +1,5 @@
 const path = require("path");
+const klaw = require("klaw");
 const fs = require("fs").promises;
 const font = require("./font");
 const TEMPLATE_KEYWORD_REGEX = "baguette";
@@ -9,6 +10,20 @@ const DEFAULT_CONFIG = {
 	dest: DEFAULT_DEST,
 	includeFolder: true,
 };
+
+function getAllFiles(dir) {
+	const files = [];
+	return new Promise((resolve, reject) => {
+		klaw(dir)
+			.on("data", (file) => {
+				if (file.stats.isFile()) {
+					files.push(file.path);
+				}
+			})
+			.on("error", (err) => reject(err))
+			.on("end", () => resolve(files));
+	});
+}
 
 function createComponent({ name = DEFAULT_NAME, template, config }) {
 	const { dest, includeFolder } = config;
@@ -21,8 +36,7 @@ function createComponent({ name = DEFAULT_NAME, template, config }) {
 	const destDir = path.resolve(process.cwd(), dest, includeFolder ? name : "");
 	const replacer = replaceComponentReferences(TEMPLATE_KEYWORD_REGEX, name);
 
-	return fs
-		.readdir(templateDir)
+	return getAllFiles(templateDir)
 		.catch((e) => {
 			if (e.message.includes("no such file or directory")) {
 				throw new Error(
@@ -35,20 +49,35 @@ function createComponent({ name = DEFAULT_NAME, template, config }) {
 		.then((files) =>
 			Promise.all([files, fs.mkdir(destDir, { recursive: true })])
 		)
-		.then(([files]) =>
-			Promise.all(
-				files.map((file) =>
-					fs.copyFile(
-						path.resolve(templateDir, file),
-						path.resolve(destDir, replacer(file))
-					)
-				)
-			)
-		)
-		.then(() => fs.readdir(destDir))
-		.then((files) =>
-			Promise.all(files.map(replaceFileContents(replacer, destDir)))
-		)
+		.then(([files]) => {
+			return Promise.all(
+				files.map((file) => {
+					const fileDest = replacer(file.replace(templateDir, ""));
+					const dest = path.join(destDir, path.dirname(fileDest));
+
+					return fs
+						.mkdir(dest, { recursive: true })
+						.then(() =>
+							fs.readFile(path.resolve(templateDir, file), {
+								encoding: "utf-8",
+							})
+						)
+						.then((data) => {
+							const contents = replacer(data);
+							const destFile = path.join(destDir, fileDest);
+							console.log(
+								font.task(
+									`📝 Writing file ${destFile.replace(
+										path.resolve(process.cwd()),
+										""
+									)}...`
+								)
+							);
+							return fs.writeFile(destFile, contents);
+						});
+				})
+			);
+		})
 		.then(() =>
 			console.log(
 				font.success(`\n🥖 ${font.bold(name)}`),
@@ -59,19 +88,6 @@ function createComponent({ name = DEFAULT_NAME, template, config }) {
 
 const replaceComponentReferences = (oldName, newName) => (str) =>
 	str.replace(new RegExp(oldName, "ig"), newName);
-
-const replaceFileContents = (replacer, dest) => (file) => {
-	const destFile = path.resolve(dest, replacer(file));
-	return fs
-		.readFile(path.resolve(dest, file), { encoding: "utf-8" })
-		.then(replacer)
-		.then((data) => {
-			console.log(
-				font.task(`📝 Writing file ${destFile.replace(process.cwd(), "")}...`)
-			);
-			return fs.writeFile(destFile, data);
-		});
-};
 
 function getConfig() {
 	return fs
